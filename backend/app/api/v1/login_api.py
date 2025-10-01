@@ -8,7 +8,7 @@ from app.services.login_service import (authenticated_user,get_user_data,get_use
     get_email_async, create_access_token, token_create_user, get_user)
 from datetime import timedelta
 from app.repositories.user_role_repository import get_role
-
+from app.dto.user_dto import SSOLoginRequest
 from app.utility.exceptions_utility import token_exception
 
 router = APIRouter()
@@ -54,12 +54,12 @@ async def user_login(form_data: LoginPasswordRequestForm = Depends(), session: S
     }
 
 @router.post("/sso-login")
-async def sso_login(payload: dict, session: Session = Depends(get_session)):
+async def sso_login(payload: SSOLoginRequest, session: Session = Depends(get_session)):
     """
     Login endpoint for SSO.
     Accepts JSON with only a token field.
     """
-    token = payload.get("token")
+    token = payload.token
 
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")

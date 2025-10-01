@@ -37,6 +37,7 @@ async def create_project(
 
 
 # ------------------ GET ALL ------------------
+@router.get("")
 @router.get(
     "/",
     dependencies=[Depends(JWTBearer())],

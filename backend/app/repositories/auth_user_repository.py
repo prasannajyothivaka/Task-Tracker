@@ -14,7 +14,7 @@ from sqlalchemy.orm import load_only
 from sqlmodel import Session, select
 from app.database import get_session
 from app.models.auth_user_model import User
-from app.dto.add_user_dto import AddUser
+from app.dto.user_dto import AddUser
 from app.models.task_model import Task
 from app.models.project_model import Project
 from app.models.user_role_model import UserRole

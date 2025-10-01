@@ -9,10 +9,11 @@ export const listProjects = createAsyncThunk(
   "projects/listProjects",
   async ({ keyword = "", page = "1" }, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get(
-        `/projects?keyword=${keyword}&page=${page}`
-      );
-      return data.data; // payload for success
+      const { data } = await axiosInstance.get("/projects/", {
+        params: { keyword, page },
+      });
+
+      return data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || error.message);
     }

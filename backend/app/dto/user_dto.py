@@ -12,3 +12,7 @@ class AddUser(SQLModel):
     last_name: str = Field(None, alias="last_name")
     password: str = Field(None, alias="password")
     role_id: int = Field(default=3, alias="role_id")
+
+
+class SSOLoginRequest(SQLModel):
+    token: str

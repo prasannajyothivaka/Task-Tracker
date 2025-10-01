@@ -9,7 +9,7 @@ from app.utility import response as res
 from app.models.auth_user_model import User
 from app.utility.http_status_codes import HttpStatusCodes
 from app.services import auth_user_service
-from app.dto.add_user_dto import AddUser
+from app.dto.user_dto import AddUser
 from app.services.login_service import get_password_hash
 from app.auth.auth_bearer import JWTBearer
 from app.services.login_service import get_current_user

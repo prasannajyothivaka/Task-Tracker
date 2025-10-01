@@ -8,7 +8,7 @@ from fastapi import Depends
 from sqlmodel import Session
 from app.database import get_session
 from app.repositories import auth_user_repository
-from app.dto.add_user_dto import AddUser
+from app.dto.user_dto import AddUser
 from app.services.login_service import get_password_hash,get_random_password
 from app.repositories.user_role_repository import is_admin
 from app.utility.exceptions_utility import unauthorised_exception
