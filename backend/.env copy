@@ -1,0 +1,37 @@
+PROJECT_NAME=TaskTracker
+BACKEND_CORS_ORIGINS=["http://localhost:3000", "https://localhost:8000", "http://localhost:4200","https://localhost:4200"]
+schema_name = 'task_tracker'
+
+# SSO Authentication
+GOOGLE_CLIENT_ID="313608268610-dbo3eur26g6g2576rkl0apbgm43roi8h.apps.googleusercontent.com"
+FRONTEND_URL = 'http://localhost:3000'
+SSO_REDIRECT_BACKEND_PATH = "http://localhost:8000"
+JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+JWKS_TTL = 3600  # 1 hour cache
+
+# Local Database Settings
+# db_name = 'TaskTracker'
+# db_host = 'TIGER03659\SQLEXPRESS'
+# db_username = 'sa'
+# db_password = 'Root@123'
+# FRONTEND_URL = 'http://localhost:4200'
+# SSO_REDIRECT_BACKEND_PATH = "http://localhost:8000"
+
+
+# Local pg Database Settings
+# db_name = 'TaskTracker'
+# db_host = 'localhost'
+# db_username = 'postgres'
+# db_password = 'Tiger#1234'
+# FRONTEND_URL = 'http://localhost:3000'
+# SSO_REDIRECT_BACKEND_PATH = "http://localhost:8000"
+# DB_PORT=5432
+
+# dev pg Database Settings
+db_name = 'TaskTracker'
+db_host = 'pg-2019-prasannajyothitasktracker1998-4671.e.aivencloud.com'
+db_username = 'avnadmin'
+db_password = 'AVNS_DOeOiwLfdi_0HmudISg'
+PORT=20217
+FRONTEND_URL = 'http://localhost:3000'
+SSO_REDIRECT_BACKEND_PATH = "http://localhost:8000"
