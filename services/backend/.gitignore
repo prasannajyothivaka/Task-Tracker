@@ -108,7 +108,6 @@ celerybeat.pid
 # Environments
 .venv
 env/
-.env
 .env copy
 venv/
 ENV/
