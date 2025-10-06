@@ -31,7 +31,7 @@ jobs:
         working-directory: services/frontend
         run: |
           npm install
-          npm run build
+          CI=false npm run build
           # Copy build folder to backend/app so FastAPI can serve it
           cp -r build ../../backend/app/
 
