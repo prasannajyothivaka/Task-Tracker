@@ -2,8 +2,8 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - task-tracker
-
+# Build and deploy Python FastAPI + React app to Azure Web App
+name: Build and Deploy Task Tracker App
 on:
   push:
     branches:
@@ -17,30 +17,48 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
+      # 1️⃣ Checkout repo
       - uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node (for React frontend)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 3️⃣ Install and build React frontend
+      - name: Build React frontend
+        working-directory: services/frontend
+        run: |
+          npm install
+          npm run build
+          # Copy build folder to backend/app so FastAPI can serve it
+          cp -r build ../../backend/app/
+
+      # 4️⃣ Setup Python
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Create and start virtual environment
+      # 5️⃣ Install backend dependencies
+      - name: Install Python dependencies
+        working-directory: services/backend
         run: |
           python -m venv venv
           source venv/bin/activate
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Upload artifact for deployment jobs
+      # 6️⃣ Upload artifact (backend + React build)
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
-            .
-            !venv/
+            services/backend/**
+            !services/backend/venv/
+
 
   deploy:
     runs-on: ubuntu-latest
