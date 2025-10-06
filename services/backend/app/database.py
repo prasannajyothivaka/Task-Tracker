@@ -1,18 +1,22 @@
-# db.py
-from sqlmodel import Session
+import sqlalchemy
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy import create_engine
-from app.core.config import settings  # import the Settings object
+from sqlmodel import Session
+from app.core.config import settings  # import our fixed Settings
 
 def get_engine():
-    """
-    Get SQLAlchemy engine for PostgreSQL (Aiven SSL required)
-    """
-    print("user name", settings.db_username)  # log the username
+    """Get SQLAlchemy engine"""
+    print("user name", settings.db_username)  # sanity check
 
-    connection_url = f"postgresql+psycopg2://{settings.db_username}:{settings.db_password}@{settings.db_host}:{settings.PORT}/{settings.db_name}"
+    connection_url = sqlalchemy.engine.URL.create(
+        "postgresql+psycopg2",
+        username=settings.db_username,
+        password=settings.db_password,
+        host=settings.db_host,
+        port=settings.PORT,
+        database=settings.db_name,
+    )
 
-    engine = create_engine(
+    engine = sqlalchemy.create_engine(
         connection_url,
         pool_pre_ping=True,
         pool_size=5,
@@ -34,11 +38,6 @@ class Base:
         return cls.__name__.lower()
 
 def get_session():
-    """
-    Session generator for FastAPI dependency injection
-    Usage:
-        with get_session() as session:
-            ...
-    """
+    """Session generator for FastAPI dependency injection"""
     with Session(engine) as session:
         yield session

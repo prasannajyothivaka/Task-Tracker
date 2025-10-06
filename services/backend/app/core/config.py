@@ -1,25 +1,18 @@
-"""
-Application configuration loaded from .env or GitHub secrets
-"""
-
 from typing import List, Union
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables"""
-
     # Basic
     PROJECT_NAME: str
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
-    # Database
-    db_name: str
-    db_host: str
-    db_username: str
-    db_password: str
-    PORT: int
+    # Database - map capital env vars
+    db_name: str = Field(..., env="DB_NAME")
+    db_host: str = Field(..., env="DB_HOST")
+    db_username: str = Field(..., env="DB_USERNAME")
+    db_password: str = Field(..., env="DB_PASSWORD")
+    PORT: int = Field(..., env="DB_PORT")
 
     # SSO
     GOOGLE_CLIENT_ID: str
@@ -28,12 +21,12 @@ class Settings(BaseSettings):
     JWKS_TTL: int
     SSO_DEFAULT_PASSWORD: str
 
-    # db schema
+    # DB schema
     schema_name: str
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) ->  List[str]:
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         """Handle CORS origins passed as string or list"""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
@@ -42,12 +35,14 @@ class Settings(BaseSettings):
         raise ValueError(v)
 
     model_config = SettingsConfigDict(
-        env_file=".env",          # Load from .env
+        env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore"
     )
 
-
-# Instantiate global settings
+# Global settings instance
 settings = Settings()
+
+# Quick test
+print("DB Username loaded from .env:", settings.db_username)
