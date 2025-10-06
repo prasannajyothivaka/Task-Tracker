@@ -23,7 +23,6 @@ class Settings(BaseSettings):
 
     # SSO
     GOOGLE_CLIENT_ID: str
-    FRONTEND_URL: AnyHttpUrl
     SSO_REDIRECT_BACKEND_PATH: AnyHttpUrl
     JWKS_URL: AnyHttpUrl
     JWKS_TTL: int
