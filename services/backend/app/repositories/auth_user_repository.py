@@ -74,13 +74,15 @@ def get_users_grouped(logged_user_id, db_session):
 
     results = db_session.exec(stmt).fetchall()
 
+    # Convert Row objects to dicts
+    users_as_dicts = [dict(user._mapping) for user in results]
+
     # Group by role_name
     grouped = defaultdict(list)
-    for user in results:
-        grouped[user.role_name].append(user)
+    for user in users_as_dicts:
+        grouped[user["role_name"]].append(user)
 
     return dict(grouped)
-
 
 def get_all_users(logged_user_id: int,user_role_id:int,
     db_session: Session = Depends(get_session)):
