@@ -33,7 +33,8 @@ jobs:
           npm install
           CI=false npm run build
           # Copy build folder to backend/app so FastAPI can serve it
-          cp -r build ../../backend/app/
+          mkdir -p ../../backend/app
+          cp -r build/* ../../backend/app/
 
       # 4️⃣ Setup Python
       - name: Set up Python version
