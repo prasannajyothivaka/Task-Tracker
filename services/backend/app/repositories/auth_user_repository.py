@@ -169,11 +169,11 @@ def get_user_details_by_id(session: Session, user_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
-def get_user_by_email(session: Session, email: str) -> User | None:
+def get_user_by_email(session: Session, email: str):
     return session.query(User).filter(User.email == email).first()
 
-def update_user_profile(session: Session, user_id: int, name: str | None = None,
-                        email: str | None = None, password: str | None = None) -> User:
+def update_user_profile(session: Session, user_id: int, name: str,
+                        email: str, password: str):
     user = get_user_details_by_id(session, user_id)
 
     # check if email is already taken by another user

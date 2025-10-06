@@ -15,6 +15,8 @@ from app.models.tables_model import create_tables
 from app.api.v1 import auth_user_api, projects_api, tasks_api, login_api
 from app.core.config import settings
 
+print("🚀 BACKEND_CORS_ORIGINS:", settings.BACKEND_CORS_ORIGINS)
+
 
 def get_application():
     """
@@ -28,7 +30,7 @@ def get_application():
     # CORS middleware
     _app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_origins=[str(origin).rstrip('/') for origin in settings.BACKEND_CORS_ORIGINS],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

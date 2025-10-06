@@ -17,24 +17,29 @@ function HomeScreen() {
   const searchParams = new URLSearchParams(location.search);
   const keyword = searchParams.get("keyword") || "";
   const pageNumber = searchParams.get("page") || 1;
-  console.log("keyword:", keyword);
 
-  // Redux state from slice
+  // Redux state
   const { projects, loading, error, page, pages } = useSelector(
     (state) => state.projects
   );
 
   const { userInfo } = useSelector((state) => state.userLogin) || {};
 
-  // Fetch projects
+  // ------------------- Optimized useEffect -------------------
   useEffect(() => {
-    if (!userInfo) {
+    // If user is explicitly null, redirect to login
+    if (userInfo === null) {
       navigate("/login");
-    } else {
+      return;
+    }
+
+    // Only fetch projects if userInfo exists and not already loading
+    if (userInfo && !loading) {
       dispatch(listProjects({ keyword, page: pageNumber }));
     }
-  }, [dispatch, keyword, pageNumber, userInfo, navigate]);
+  }, [dispatch, keyword, pageNumber, userInfo, navigate, loading]);
 
+  // ------------------- Render -------------------
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
