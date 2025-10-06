@@ -11,8 +11,7 @@ def get_engine(**db_config):
     """
     Get SQLAlchemy engine for PostgreSQL (Aiven SSL required)
     """
-    print('b_config["username"]',db_config["username"], db_config["password"], db_config["host"])
-    
+    print("user name",db_config["username"])
     connection_url = sqlalchemy.engine.URL.create(
         "postgresql+psycopg2",
         username=db_config["username"],
