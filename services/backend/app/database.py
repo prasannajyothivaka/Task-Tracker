@@ -1,31 +1,18 @@
 # db.py
-import os
-from dotenv import load_dotenv
-import sqlalchemy
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
 from sqlmodel import Session
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from sqlalchemy import create_engine
+from app.core.config import settings  # import the Settings object
 
-load_dotenv()
-
-def get_engine(**db_config):
+def get_engine():
     """
     Get SQLAlchemy engine for PostgreSQL (Aiven SSL required)
     """
-    print("user name",db_config["username"])
-    connection_url = sqlalchemy.engine.URL.create(
-        "postgresql+psycopg2",
-        username=db_config["username"],
-        password=db_config["password"],
-        host=db_config["host"],
-        port=db_config.get("port"),
-        database=db_config["database"],
-        # query={
-        #     "sslmode": "require"  # SSL is mandatory for Aiven
-        #     # If you have CA cert: "sslrootcert": db_config.get("sslrootcert")
-        # },
-    )
+    print("user name", settings.db_username)  # log the username
 
-    engine = sqlalchemy.create_engine(
+    connection_url = f"postgresql+psycopg2://{settings.db_username}:{settings.db_password}@{settings.db_host}:{settings.PORT}/{settings.db_name}"
+
+    engine = create_engine(
         connection_url,
         pool_pre_ping=True,
         pool_size=5,
@@ -35,19 +22,8 @@ def get_engine(**db_config):
     )
     return engine
 
-# Load environment variables
-DB_CONFIG = {
-    "username": os.getenv("DB_USERNAME"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT", 20217),
-    "database": os.getenv("DB_NAME"),
-    # "sslrootcert": os.getenv("DB_CA_CERT")  # optional if using verify-full
-}
-
 # Create engine
-engine = get_engine(**DB_CONFIG)
-
+engine = get_engine()
 
 @as_declarative()
 class Base:
@@ -56,7 +32,6 @@ class Base:
     @declared_attr
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
-
 
 def get_session():
     """
