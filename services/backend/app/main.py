@@ -15,6 +15,17 @@ from app.models.tables_model import create_tables
 from app.api.v1 import auth_user_api, projects_api, tasks_api, login_api
 from app.core.config import settings
 
+# ---------------------------
+# DEBUG: Print all config variables
+# ---------------------------
+print("======= Loaded Configuration =======")
+for key, value in settings.model_dump().items():
+    # Mask sensitive info like passwords
+    if "password" in key.lower():
+        value = "*****"
+    print(f"{key} = {value}")
+print("===================================")
+
 
 def get_application():
     """
@@ -50,7 +61,6 @@ app.include_router(auth_user_api.router, prefix="/api", tags=["UserApi"])
 app.include_router(projects_api.router, prefix="/api", tags=["Projects"])
 app.include_router(login_api.router, prefix="/api", tags=["Login"])
 
-
 # ---------------------------
 # Serve React frontend (build folder)
 # ---------------------------
@@ -64,16 +74,14 @@ if BUILD_DIR.exists():
     # Catch-all route for React (non-API routes)
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        # 🚨 Ignore all /api paths so they return proper FastAPI error JSON
+        # Ignore all /api paths
         if full_path.startswith("api"):
-            return FileResponse("404.html") if (BUILD_DIR / "404.html").exists() else {"detail": "Not Found"}
+            return {"detail": "Not Found"}
 
         index_path = BUILD_DIR / "index.html"
         if index_path.exists():
             return FileResponse(index_path)
         return {"detail": "Not Found"}
-
-
 
 # ---------------------------
 # Logging
