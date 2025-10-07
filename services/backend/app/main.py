@@ -10,8 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-
-from app.models.tables_model import create_tables
 from app.api.v1 import auth_user_api, projects_api, tasks_api, login_api
 from app.core.config import settings
 
@@ -50,8 +48,6 @@ def get_application():
 
 app = get_application()
 
-# Create all tables in the database
-create_tables()
 
 # ---------------------------
 # Include API routers (all under /api)
