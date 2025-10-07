@@ -2,7 +2,7 @@
 Starting point of the application
 """
 from logging.config import fileConfig
-from os import path
+from os import path, environ
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -24,11 +24,10 @@ for key, value in settings.model_dump().items():
     print(f"{key} = {value}")
 print("===================================")
 
-
+# ---------------------------
+# Setup FastAPI app
+# ---------------------------
 def get_application():
-    """
-    Setup FastAPI application
-    """
     _app = FastAPI(title=settings.PROJECT_NAME)
 
     # GZip middleware
@@ -48,7 +47,6 @@ def get_application():
 
 app = get_application()
 
-
 # ---------------------------
 # Include API routers (all under /api)
 # ---------------------------
@@ -63,24 +61,56 @@ app.include_router(login_api.router, prefix="/api", tags=["Login"])
 BASE_DIR = Path(__file__).resolve().parent  # backend/app/
 BUILD_DIR = BASE_DIR / "build"  # backend/app/build
 
+# DEBUG: check build folder
+print("BUILD_DIR path:", BUILD_DIR)
+print("Does BUILD_DIR exist?", BUILD_DIR.exists())
 if BUILD_DIR.exists():
-    # Serve static files (CSS/JS/images)
-    app.mount("/static", StaticFiles(directory=BUILD_DIR / "static"), name="static")
+    print("Contents of BUILD_DIR:", [f.name for f in BUILD_DIR.iterdir()])
 
-    # Catch-all route for React (non-API routes)
+    # Serve static files
+    static_dir = BUILD_DIR / "static"
+    if static_dir.exists():
+        print("Serving static files from:", static_dir)
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    else:
+        print("WARNING: Static folder not found in build!")
+
+    # Catch-all route for React frontend
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        # Ignore all /api paths
-        if full_path.startswith("api"):
+        # Ignore API paths
+        if "api" in full_path:
             return {"detail": "Not Found"}
 
         index_path = BUILD_DIR / "index.html"
+        print("Requested path:", full_path)
+        print("Serving index.html from:", index_path)
         if index_path.exists():
             return FileResponse(index_path)
-        return {"detail": "Not Found"}
+        else:
+            print("ERROR: index.html not found!")
+            return {"detail": "Not Found"}
+else:
+    print("ERROR: BUILD_DIR not found. React frontend will not render.")
+
+# ---------------------------
+# Explicit favicon route
+# ---------------------------
+favicon_path = BUILD_DIR / "favicon.ico"
+if favicon_path.exists():
+    @app.get("/favicon.ico")
+    async def favicon():
+        return FileResponse(favicon_path)
+else:
+    print("WARNING: favicon.ico not found in build folder")
 
 # ---------------------------
 # Logging
 # ---------------------------
 log_file_path = path.join(path.dirname(path.abspath(__file__)), "logging.conf")
 fileConfig(log_file_path, disable_existing_loggers=False)
+
+# ---------------------------
+# Debug: Print Azure PORT if set
+# ---------------------------
+print("PORT environment variable:", environ.get("PORT", "not set"))
