@@ -46,7 +46,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 6️⃣ Clean old caches
+      # 6️⃣ Clean old caches before deployment
       - name: Remove old pycache
         run: find services/backend/app -name "__pycache__" -type d -exec rm -r {} +
 
@@ -83,9 +83,9 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_288C5559F181476BB304241DB12D2D44 }}
 
-      # 3️⃣ Restart App Service to force reload
-      - name: Restart Azure App Service
+      # 3️⃣ Optional: Clean __pycache__ on Azure (if old code still appears)
+      - name: Remove __pycache__ on Azure
         uses: azure/cli@v1
         with:
           inlineScript: |
-            az webapp restart --name task-tracker --resource-group FSD-Training-batch1
+            az webapp ssh --name task-tracker --command "find /home/site/wwwroot -name '__pycache__' -type d -exec rm -r {} +"
