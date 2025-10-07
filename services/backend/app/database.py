@@ -1,3 +1,4 @@
+import os
 import sqlalchemy
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 from sqlmodel import Session
@@ -9,10 +10,10 @@ def get_engine():
 
     connection_url = sqlalchemy.engine.URL.create(
         "postgresql+psycopg2",
-        username=settings.db_username,
+        username=os.getenv('DB_USERNAME'),
         password=settings.db_password,
         host=settings.db_host,
-        port=settings.PORT,
+        port=20217,
         database=settings.db_name,
     )
 

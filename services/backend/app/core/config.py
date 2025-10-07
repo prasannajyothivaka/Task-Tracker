@@ -5,7 +5,9 @@ from typing import List, Union
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class Settings(BaseSettings):
     """Base settings class"""
