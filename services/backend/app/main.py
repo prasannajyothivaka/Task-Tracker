@@ -84,7 +84,7 @@ if BUILD_DIR.exists():
 
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        if "api" in full_path:
+        if "api" in full_path or full_path.startswith("docs") or full_path.startswith("redoc") or full_path.startswith("openapi.json"):
             return JSONResponse({"detail": "API route not found"}, status_code=404)
 
         index_path = BUILD_DIR / "index.html"

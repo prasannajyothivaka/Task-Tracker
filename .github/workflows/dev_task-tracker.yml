@@ -20,18 +20,23 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18' # Stable for most React apps
 
       # 3️⃣ Build React frontend
       - name: Build React frontend
         working-directory: services/frontend
+        env:
+          CI: false  # Prevents React build from failing in CI
         run: |
           echo "📦 Installing frontend dependencies..."
-          npm install
+          npm ci || (echo "❌ npm ci failed"; exit 1)
+
           echo "🏗️ Building React app..."
-          CI=false npm run build
-          echo "✅ Build completed. Listing contents..."
-          ls -la build
+          npm run build || (echo "❌ React build failed"; ls -la; exit 1)
+
+          echo "✅ React build completed. Listing contents..."
+          ls -la build || echo "❌ Build folder missing!"
+
           echo "📁 Copying React build to backend/app..."
           mkdir -p ../../backend/app
           cp -r build ../../backend/app/
@@ -49,9 +54,15 @@ jobs:
         working-directory: services/backend
         run: |
           python -m venv venv
+          echo "🔹 Activating virtual environment..."
           source venv/bin/activate
+
+          echo "📦 Upgrading pip..."
           pip install --upgrade pip
-          pip install -r requirements.txt
+
+          echo "📦 Installing backend dependencies..."
+          pip install -r requirements.txt || (echo "❌ pip install failed"; exit 1)
+
           echo "✅ Backend dependencies installed."
 
       # 6️⃣ Clean pycache and confirm structure
@@ -59,6 +70,7 @@ jobs:
         run: |
           echo "🧹 Cleaning __pycache__ directories..."
           find services/backend/app -name "__pycache__" -type d -exec rm -r {} + || true
+
           echo "📂 Listing backend/app folder contents:"
           ls -R services/backend/app
 
@@ -82,7 +94,7 @@ jobs:
         with:
           name: python-app
 
-      # 2️⃣ List downloaded files
+      # 2️⃣ List downloaded files for debug
       - name: Verify downloaded artifact
         run: |
           echo "📦 Verifying downloaded artifact..."
@@ -96,3 +108,8 @@ jobs:
           app-name: 'task-tracker'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_288C5559F181476BB304241DB12D2D44 }}
+
+      # 4️⃣ Confirm deployment
+      - name: Deployment debug
+        run: |
+          echo "✅ Deployment step completed. Check Azure portal for live app."
