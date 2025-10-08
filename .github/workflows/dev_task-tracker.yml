@@ -1,4 +1,5 @@
 name: Build and Deploy Task Tracker App
+
 on:
   push:
     branches:
@@ -15,7 +16,7 @@ jobs:
       # 1️⃣ Checkout repo
       - uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node (React frontend)
+      # 2️⃣ Setup Node.js for React
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -25,13 +26,19 @@ jobs:
       - name: Build React frontend
         working-directory: services/frontend
         run: |
+          echo "📦 Installing frontend dependencies..."
           npm install
+          echo "🏗️ Building React app..."
           CI=false npm run build
-          # Copy build folder to backend/app
+          echo "✅ Build completed. Listing contents..."
+          ls -la build
+          echo "📁 Copying React build to backend/app..."
           mkdir -p ../../backend/app
           cp -r build ../../backend/app/
+          echo "📋 Verifying copied build folder..."
+          ls -R ../../backend/app/build || echo "❌ Build folder missing!"
 
-      # 4️⃣ Setup Python
+      # 4️⃣ Setup Python for backend
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
@@ -45,16 +52,17 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+          echo "✅ Backend dependencies installed."
 
-      # 6️⃣ Clean old caches before deployment
-      - name: Remove old pycache
-        run: find services/backend/app -name "__pycache__" -type d -exec rm -r {} +
+      # 6️⃣ Clean pycache and confirm structure
+      - name: Verify backend/app structure
+        run: |
+          echo "🧹 Cleaning __pycache__ directories..."
+          find services/backend/app -name "__pycache__" -type d -exec rm -r {} + || true
+          echo "📂 Listing backend/app folder contents:"
+          ls -R services/backend/app
 
-      # 7️⃣ Verify backend folder contents
-      - name: List backend/app files
-        run: ls -R services/backend/app
-
-      # 8️⃣ Upload artifact (backend + React build)
+      # 7️⃣ Upload artifact (backend + React build)
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
@@ -68,13 +76,19 @@ jobs:
     needs: build
 
     steps:
-      # 1️⃣ Download artifact
-      - name: Download artifact from build job
+      # 1️⃣ Download artifact from build job
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: python-app
 
-      # 2️⃣ Deploy to Azure Web App
+      # 2️⃣ List downloaded files
+      - name: Verify downloaded artifact
+        run: |
+          echo "📦 Verifying downloaded artifact..."
+          ls -R
+
+      # 3️⃣ Deploy to Azure
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
