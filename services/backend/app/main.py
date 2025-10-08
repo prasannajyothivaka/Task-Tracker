@@ -63,6 +63,7 @@ app.include_router(auth_user_api.router, prefix="/api", tags=["UserApi"])
 app.include_router(projects_api.router, prefix="/api", tags=["Projects"])
 app.include_router(login_api.router, prefix="/api", tags=["Login"])
 
+
 # ---------------------------
 # Serve React Frontend
 # ---------------------------
