@@ -28,13 +28,28 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+
 def get_active_user_by_username(username, session):
     """
-    gets the user name by its name
+    Get an active user by their username or email.
     """
-    statement = select(User).where(User.email == username,User.is_active ==True).\
-        options(load_only('id', 'username', 'first_name', 'last_name', 'email', 'last_login')).limit(1)
+    statement = (
+        select(User)
+        .where(User.email == username, User.is_active == True)
+        .options(
+            load_only(
+                User.id,
+                User.username,
+                User.first_name,
+                User.last_name,
+                User.email,
+                User.last_login,
+            )
+        )
+        .limit(1)
+    )
     return session.execute(statement).scalar_one_or_none()
+
 
 def update_role(logged_user_id, user_id, role_id, session):
     """
