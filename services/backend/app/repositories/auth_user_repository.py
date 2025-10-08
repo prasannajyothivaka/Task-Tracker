@@ -99,30 +99,25 @@ def get_users_grouped(logged_user_id, db_session):
 
     return dict(grouped)
 
-def get_all_users(logged_user_id: int,user_role_id:int,
-    db_session: Session = Depends(get_session)):
-    """
-        Gets details of all users available
-    """
+def get_all_users(logged_user_id: int, user_role_id: int, db_session: Session = Depends(get_session)):
     if is_authorized_user(logged_user_id, db_session):
 
-        statement = select(User.id, User.first_name, User.last_name,
-                           User.email, User.username,
-                           coalesce(UserRole.role_id, 3).label("role_id"))
-
-        statement = statement.\
-            join(UserRole, UserRole.user_id == User.id).\
-            where(UserRole.role_id == user_role_id)
-
-        get_users = statement.\
-            order_by(User.email)
+        statement = select(
+            User.id, User.first_name, User.last_name,
+            User.email, User.username,
+            coalesce(UserRole.role_id, 3).label("role_id")
+        ).join(UserRole, UserRole.user_id == User.id)\
+         .where(UserRole.role_id == user_role_id)\
+         .order_by(User.email)
 
         start_query = time.time()
-        results = db_session.exec(get_users).fetchall()
-        logger.info("{} ran in {}s".\
-            format("is_authorized_user_"+str(user_role_id)+"_query", round(time.time() - start_query, 2)))
+        results = db_session.exec(statement).fetchall()
+        logger.info("{} ran in {}s".format("is_authorized_user_"+str(user_role_id)+"_query",
+                                           round(time.time() - start_query, 2)))
 
-        return results
+        #convert Row objects to dicts
+        results_dict = [dict(row) for row in results]
+        return results_dict
 
     else:
         raise unauthorised_exception()

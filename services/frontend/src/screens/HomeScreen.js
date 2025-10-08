@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Spinner } from "react-bootstrap";
@@ -24,20 +24,20 @@ function HomeScreen() {
   );
 
   const { userInfo } = useSelector((state) => state.userLogin) || {};
+  const fetchedRef = useRef(false);
 
   // ------------------- Optimized useEffect -------------------
   useEffect(() => {
-    // If user is explicitly null, redirect to login
-    if (userInfo === null) {
+    if (!userInfo) {
       navigate("/login");
       return;
     }
 
-    // Only fetch projects if userInfo exists and not already loading
-    if (userInfo && !loading) {
-      dispatch(listProjects({ keyword, page: pageNumber }));
-    }
-  }, [dispatch, keyword, pageNumber, userInfo, navigate, loading]);
+    if (fetchedRef.current) return; // prevent double fetch in StrictMode
+    fetchedRef.current = true;
+
+    dispatch(listProjects({ keyword, page: pageNumber }));
+  }, [dispatch, keyword, pageNumber, userInfo, navigate]);
 
   // ------------------- Render -------------------
   return (
