@@ -108,6 +108,7 @@ if favicon_path.exists():
 else:
     print("⚠️ WARNING: favicon.ico not found in build folder")
 
+
 # ---------------------------
 # Environment Debug Info
 # ---------------------------
