@@ -101,7 +101,6 @@ def get_users_grouped(logged_user_id, db_session):
 
 def get_all_users(logged_user_id: int, user_role_id: int, db_session: Session = Depends(get_session)):
     if is_authorized_user(logged_user_id, db_session):
-
         statement = select(
             User.id, User.first_name, User.last_name,
             User.email, User.username,
@@ -111,18 +110,20 @@ def get_all_users(logged_user_id: int, user_role_id: int, db_session: Session = 
          .order_by(User.email)
 
         start_query = time.time()
-        results = db_session.exec(statement).fetchall()
-        logger.info("{} ran in {}s".format("is_authorized_user_"+str(user_role_id)+"_query",
-                                           round(time.time() - start_query, 2)))
 
-        #convert Row objects to dicts
-        results_dict = [dict(row) for row in results]
-        return results_dict
+        # ✅ Fix: convert RowMapping to real dicts
+        results = [dict(row) for row in db_session.exec(statement).mappings().all()]
 
+        logger.info(
+            "{} ran in {}s".format("is_authorized_user_" + str(user_role_id) + "_query",
+                                   round(time.time() - start_query, 2))
+        )
+
+        return results
     else:
         raise unauthorised_exception()
 
-#use
+
 def get_email(logged_user_id: int, email: str, db_session: Session = Depends(get_session)):
     """
         Gets details of email available or not
