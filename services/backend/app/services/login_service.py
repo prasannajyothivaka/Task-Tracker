@@ -25,16 +25,16 @@ from app.utility.exceptions_utility import get_user_exception
 
 
 SECRET = "ipxktnykorrirtjduyy"
-ALGORITHM = "HS256"
+ALGORITHM = "RS256"
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
 
 
 # Cache JWKS keys and expiry
-JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+JWKS_URL = os.getenv('JWKS_URL')
 _jwks_cache = None
 _jwks_last_fetch = 0
-JWKS_TTL = 3600  # 1 hour cache
+JWKS_TTL = os.getenv('JWKS_TTL')
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -148,18 +148,49 @@ def get_user(username: str, session):
         return {"status": True, "user": user}
     return {"status": False, "user": False}
 
-def create_access_token(username: str, user_id: int, expires_delta: Optional[timedelta] = None):
+def create_access_token(user_id: int, email: str = None, roles: list = None, expires_delta: timedelta = None):
     """
-    creating access token
+    Create an access token (short-lived JWT for authentication).
     """
-    encode = {"sub": username, "id": user_id}
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=120)
-    encode.update({"exp": expire})
-    return jwt.encode(encode, SECRET, algorithm=ALGORITHM)
+        expire = datetime.utcnow() + timedelta(minutes=60)  # default 1 hour expiry
 
+    to_encode = {
+        "user_id": user_id,
+        "exp": expire,
+        "type": "access",
+    }
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET,
+        algorithm=ALGORITHM
+    )
+    return encoded_jwt
+
+def create_refresh_token(user_id: int, expires_delta: timedelta = None):
+    """
+    Create a refresh token with longer expiration.
+    """
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=1)
+    
+    to_encode = {
+        "user_id": user_id,
+        "exp": expire,
+        "type": "refresh"  # Mark as refresh token
+    }
+    
+    encoded_jwt = jwt.encode(
+        to_encode, 
+        SECRET, 
+        algorithm=ALGORITHM
+    )
+    return encoded_jwt
 
 def get_current_user(token: str = Depends(oauth2_bearer)):
     """

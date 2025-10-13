@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ssoLogin } from "../features/authSlice";
-import { GOOGLE_CLIENT_ID } from "../constants/globalConstants";
+import { GOOGLE_CLIENT_ID, GSI_CLIENT_URL } from "../constants/globalConstants";
 
 const GoogleSSO = () => {
   const [error, setError] = useState("");
@@ -16,7 +16,7 @@ const GoogleSSO = () => {
 
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
+    script.src = GSI_CLIENT_URL;
     script.async = true;
     script.defer = true;
     script.onload = initGoogle;

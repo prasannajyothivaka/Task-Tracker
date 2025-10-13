@@ -16,12 +16,17 @@ import ProjectEditScreen from "./screens/ProjectEditScreen";
 import TaskEditScreen from "./screens/TaskEditScreen";
 import GoogleSSO from "./components/Login";
 import PrivateRoute from "./components/PrivateRoute";
+import useTokenManager from "./hooks/useTokenManager";
 
 function App() {
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin || {};
   const useDevLogin = process.env.REACT_APP_DEV === "false" ? false : true;
-  console.log("useDevLogin:",useDevLogin)
+
+  // Initialize token manager for the entire app
+  useTokenManager();
+
+  console.log("useDevLogin:", useDevLogin);
 
   return (
     <Router>

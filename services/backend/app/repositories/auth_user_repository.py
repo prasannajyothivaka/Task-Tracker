@@ -1,31 +1,18 @@
 """
     CRUD operations for user related to different users
 """
-import logging
-import time
-from datetime import datetime
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.sql.functions import coalesce
-from collections import defaultdict
-from fastapi import Depends, HTTPException,status
-from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update
 from sqlalchemy.orm import load_only
 from sqlmodel import Session, select
 from app.database import get_session
 from app.models.auth_user_model import User
-from app.dto.user_dto import AddUser
 from app.models.task_model import Task
-from app.models.project_model import Project
 from app.models.user_role_model import UserRole
 from app.models.role_model import Role
-from app.repositories.user_role_repository import is_authorized_user, is_admin
-from app.utility.exceptions_utility import unauthorised_exception
 from passlib.context import CryptContext
-
-
-load_dotenv()
-logger = logging.getLogger(__name__)
 
 
 
@@ -51,27 +38,21 @@ def get_active_user_by_username(username, session):
     return session.execute(statement).scalar_one_or_none()
 
 
-def update_role(logged_user_id, user_id, role_id, session):
+def update_user_role(session, user_id, role_id):
     """
-    Update user role
+    Update user role - data access only
     """
-    if not is_admin(logged_user_id, session):
-        raise unauthorised_exception()
     userrole_stmt = update(UserRole).where(UserRole.user_id == user_id).values(role_id=role_id)
-    session.execute(userrole_stmt)
-    
+    result = session.execute(userrole_stmt)
     session.commit()
-    return "Role Updated Successfully"
+    return result.rowcount > 0
     
 
 
-def get_users_grouped(logged_user_id, db_session):
+def get_users_with_roles(db_session):
     """
-    Get all users grouped by role name
+    Get all users with their role information - data access only
     """
-    if not is_admin(logged_user_id, db_session):
-        raise unauthorised_exception()
-    
     stmt = (
         select(
             User.id,
@@ -82,90 +63,56 @@ def get_users_grouped(logged_user_id, db_session):
             UserRole.role_id,
             coalesce(Role.role_name, "User").label("role_name"),
         )
-        .join(UserRole, UserRole.user_id == User.id, isouter=True)  # left join in case user has no role
-        .join(Role, Role.id == UserRole.role_id, isouter=True)       # left join to get role name
+        .join(UserRole, UserRole.user_id == User.id, isouter=True)
+        .join(Role, Role.id == UserRole.role_id, isouter=True)
         .order_by(Role.role_name, User.email)
     )
 
     results = db_session.exec(stmt).fetchall()
+    return [dict(user._mapping) for user in results]
 
-    # Convert Row objects to dicts
-    users_as_dicts = [dict(user._mapping) for user in results]
-
-    # Group by role_name
-    grouped = defaultdict(list)
-    for user in users_as_dicts:
-        grouped[user["role_name"]].append(user)
-
-    return dict(grouped)
-
-def get_all_users(logged_user_id: int, user_role_id: int, db_session: Session = Depends(get_session)):
-    if is_authorized_user(logged_user_id, db_session):
-        statement = select(
-            User.id, User.first_name, User.last_name,
-            User.email, User.username,
-            coalesce(UserRole.role_id, 3).label("role_id")
-        ).join(UserRole, UserRole.user_id == User.id)\
-         .where(UserRole.role_id == user_role_id)\
-         .order_by(User.email)
-
-        start_query = time.time()
-
-        # ✅ Fix: convert RowMapping to real dicts
-        results = [dict(row) for row in db_session.exec(statement).mappings().all()]
-
-        logger.info(
-            "{} ran in {}s".format("is_authorized_user_" + str(user_role_id) + "_query",
-                                   round(time.time() - start_query, 2))
-        )
-
-        return results
-    else:
-        raise unauthorised_exception()
-
-
-def get_email(logged_user_id: int, email: str, db_session: Session = Depends(get_session)):
+def get_users_by_role(db_session, user_role_id: int):
     """
-        Gets details of email available or not
+    Get all users by specific role - data access only
     """
-    start = time.time()
-    if is_admin(logged_user_id, db_session) == True:
-        statement = select(User.email).where(User.email == email)
-        results = db_session.exec(statement).first()
-        is_exists = False
-        if results != None:
-            is_exists = True
-            logger.info("{} ran in {}s".format("get_email", round(time.time() - start, 2)))
-            
-        return is_exists
+    statement = select(
+        User.id, User.first_name, User.last_name,
+        User.email, User.username,
+        coalesce(UserRole.role_id, 3).label("role_id")
+    ).join(UserRole, UserRole.user_id == User.id)\
+     .where(UserRole.role_id == user_role_id)\
+     .order_by(User.email)
 
-    else:
-        raise unauthorised_exception()
+    return [dict(row) for row in db_session.exec(statement).mappings().all()]
 
 
-def add_user(adduser: AddUser,encrypt_password:str,
-             db_session: Session = Depends(get_session)):
+def check_email_exists(db_session, email: str):
     """
-    add new user
+    Check if email exists in database - data access only
     """
-    new_user = User(email=adduser.email, first_name=adduser.first_name,
-                    last_name=adduser.last_name, password=encrypt_password,
-                    is_superuser=0, username=adduser.email)
+    statement = select(User.email).where(User.email == email)
+    result = db_session.exec(statement).first()
+    return result is not None
+
+
+def create_user(db_session, user_data: dict):
+    """
+    Create new user - data access only
+    """
+    new_user = User(**user_data)
     db_session.add(new_user)
     db_session.flush()
     db_session.refresh(new_user)
-
     return new_user.id
 
-def add_user_role(new_user_id: int, user_role_id : int,
-                  db_session: Session = Depends(get_session)):
+def create_user_role(db_session, user_id: int, role_id: int):
     """
-    maps user role
+    Create user role mapping - data access only
     """
-    new_user_role = UserRole(role_id=user_role_id, user_id=new_user_id)
+    new_user_role = UserRole(role_id=role_id, user_id=user_id)
     db_session.add(new_user_role)
     db_session.commit()
-    db_session.close()
+    return True
 
 def get_user_id_async(email: str, db_session: AsyncSession):
     """
@@ -185,27 +132,19 @@ def get_user_details_by_id(session: Session, user_id: int):
 def get_user_by_email(session: Session, email: str):
     return session.query(User).filter(User.email == email).first()
 
-def update_user_profile(session: Session, user_id: int, name: str,
-                        email: str, password: str):
+def update_user_profile_data(session: Session, user_id: int, update_data: dict):
+    """
+    Update user profile - data access only
+    """
     user = get_user_details_by_id(session, user_id)
-
-    # check if email is already taken by another user
-    if email:
-        existing_user = get_user_by_email(session, email)
-        if existing_user and existing_user.id != user_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Email already in use by another user")
-        user.email = email
-
-    if name:
-        user.first_name = name
-
-    if password:
-        user.password = get_password_hash(password)
-
-    from datetime import datetime
-    user.updated_at = datetime.utcnow()
-
+    
+    for key, value in update_data.items():
+        if hasattr(user, key) and value is not None:
+            setattr(user, key, value)
+    
+    from datetime import datetime, timezone
+    user.updated_at = datetime.now(timezone.utc)
+    
     session.commit()
     session.refresh(user)
     return user
@@ -220,18 +159,20 @@ def get_password_hash(password):
 
 
 
-def delete_user(logged_user_id, user_id, session):
-    """Update tasks assigned_to as null and role_id in userrole table"""
-    if not is_admin(logged_user_id, session):
-        raise unauthorised_exception()
-    
-    # Update assigned_to as null in task table where assigned_to = user_id
+def unassign_user_tasks(session, user_id):
+    """
+    Unassign all tasks from user - data access only
+    """
     task_stmt = update(Task).where(Task.assigned_to == user_id).values(assigned_to=None)
-    session.execute(task_stmt)
-    
-    # Update role_id as null in userrole table where user_id = user_id
-    user_role = UserRole(user_id=user_id, role_id=3)
-    session.merge(user_role)  # merge handles insert or update automatically
+    result = session.execute(task_stmt)
+    return result.rowcount
+
+
+def update_user_role_to_default(session, user_id, default_role_id=3):
+    """
+    Update user role to default role - data access only
+    """
+    user_role = UserRole(user_id=user_id, role_id=default_role_id)
+    session.merge(user_role)
     session.commit()
-    
-    return {"message": f"User {user_id} tasks and roles updated successfully"}
+    return True

@@ -1,5 +1,6 @@
 // src/slices/authSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 import axiosInstance from "../api/axiosInstance"; // ✅ use centralized axios
 
 // --------------------- Async Thunks ---------------------
@@ -17,7 +18,11 @@ export const login = createAsyncThunk(
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
+      // ✅ Store both tokens
       localStorage.setItem("userInfo", JSON.stringify(data.data));
+      localStorage.setItem("access_token", data.data.token);
+      localStorage.setItem("refresh_token", data.data.refresh_token); // if backend provides it
+
       return data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || error.message);
@@ -31,19 +36,101 @@ export const ssoLogin = createAsyncThunk(
   async ({ token }, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.post("/sso-login", { token });
-      localStorage.setItem("userInfo", JSON.stringify(data.data));
-      return data.data;
+
+      const userData = {
+        ...data.data,
+        token: data.data.token, // access token
+        refresh_token: data.data.refresh_token, // refresh token
+      };
+
+      localStorage.setItem("userInfo", JSON.stringify(userData));
+      localStorage.setItem("access_token", data.data.token);
+      localStorage.setItem("refresh_token", data.data.refresh_token);
+
+      return userData;
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || error.message);
     }
   }
 );
 
+// Refresh access token
+export const refreshAccessToken = createAsyncThunk(
+  "auth/refreshToken",
+  async (_, { rejectWithValue }) => {
+    try {
+      const refresh_token = localStorage.getItem("refresh_token");
+
+      if (!refresh_token) {
+        throw new Error("No refresh token available");
+      }
+
+      // Check if refresh token itself is expired
+      const isRefreshTokenExpired = (token) => {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          const currentTime = Date.now() / 1000;
+          return payload.exp < currentTime;
+        } catch (parseError) {
+          console.warn("Failed to parse refresh token:", parseError.message);
+          return true;
+        }
+      };
+
+      if (isRefreshTokenExpired(refresh_token)) {
+        throw new Error("Refresh token expired");
+      }
+
+      // Create a basic axios instance to avoid circular dependencies
+      const basicAxios = axios.create({
+        baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000",
+      });
+
+      const { data } = await basicAxios.post("/refresh-token", {
+        refresh_token,
+      });
+
+      // Update stored access token
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      if (userInfo) {
+        userInfo.token = data.data.token;
+        localStorage.setItem("userInfo", JSON.stringify(userInfo));
+        localStorage.setItem("access_token", data.data.token);
+      }
+
+      return data.data.token;
+    } catch (error) {
+      // Clear tokens on failure
+      localStorage.removeItem("userInfo");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+
+      // If it's a network error, don't immediately redirect
+      if (!error.response) {
+        console.warn("Network error during token refresh:", error.message);
+      }
+
+      return rejectWithValue(error.response?.data?.detail || error.message);
+    }
+  }
+);
+
 // Logout
-export const logout = createAsyncThunk("auth/logout", async (_, { dispatch }) => {
-  localStorage.removeItem("userInfo");
-  dispatch(authSlice.actions.resetAll());
-});
+export const logout = createAsyncThunk(
+  "auth/logout",
+  async (_, { dispatch }) => {
+    localStorage.removeItem("userInfo");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+
+    // Clear any ongoing token checks
+    if (typeof window !== "undefined" && window.tokenCheckInterval) {
+      clearInterval(window.tokenCheckInterval);
+    }
+
+    dispatch(authSlice.actions.resetAll());
+  }
+);
 
 // Register
 export const register = createAsyncThunk(
@@ -213,6 +300,22 @@ const authSlice = createSlice({
       .addCase(ssoLogin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // Refresh Token
+      .addCase(refreshAccessToken.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.userInfo) {
+          state.userInfo.token = action.payload;
+        }
+      })
+      .addCase(refreshAccessToken.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.userInfo = null; // Logout on refresh failure
       })
 
       // Register
